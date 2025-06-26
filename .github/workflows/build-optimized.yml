@@ -1,14 +1,12 @@
 name: Build Shopify Theme
 
 on:
-  workflow_call:
-    inputs:
-      channel_id:
-        required: true
-        type: string
-    secrets:
-      SLACK_BOT_TOKEN:
-        required: true
+    workflow_call:
+        secrets:
+            SLACK_BOT_TOKEN:
+                required: true
+            CHANNEL_ID:
+                required: true
 
 env:
   NODE_VERSION: '22'
@@ -167,7 +165,7 @@ jobs:
           export SHA="${{ github.sha }}"
           export ACTOR="${{ github.actor }}"
           export SHOPIFY_CHANGES="${{ steps.shopify-changes.outputs.files }}"
-          export CHANNEL_ID="${{ inputs.channel_id }}"
+          export CHANNEL_ID="${{ secrets.CHANNEL_ID }}"
           json=$(python3 -c 'import json, os; msg = "*Build Succeeded* :tada:\n*Project Name:* {repo_name}\n*Repository:* <https://github.com/{repo}|{repo}>\n*Branch:* {branch}\n*Commit:* <https://github.com/{repo}/commit/{sha}|{sha}>\n*Actor:* {actor}\n*Assets were updated*".format(repo_name=os.environ.get("REPO_NAME", ""), repo=os.environ.get("REPO", ""), branch=os.environ.get("BRANCH", ""), sha=os.environ.get("SHA", ""), actor=os.environ.get("ACTOR", "")) + (f"\n\n*Shopify Bot Changes (non-JSON):*\n{os.environ['SHOPIFY_CHANGES']}" if os.environ.get("SHOPIFY_CHANGES", "") else ""); print(json.dumps({"channel": os.environ.get("CHANNEL_ID", ""), "text": msg, "mrkdwn": True}))')
           curl -X POST -H "Content-Type: application/json" -H "Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}" -d "$json" "https://slack.com/api/chat.postMessage"
 
@@ -180,7 +178,7 @@ jobs:
           export SHA="${{ github.sha }}"
           export ACTOR="${{ github.actor }}"
           export SHOPIFY_CHANGES="${{ steps.shopify-changes.outputs.files }}"
-          export CHANNEL_ID="${{ inputs.channel_id }}"
+          export CHANNEL_ID="${{ secrets.CHANNEL_ID }}"
           json=$(python3 -c 'import json, os; msg = "*Build Completed* :white_check_mark:\n*Project Name:* {repo_name}\n*Repository:* <https://github.com/{repo}|{repo}>\n*Branch:* {branch}\n*Commit:* <https://github.com/{repo}/commit/{sha}|{sha}>\n*Actor:* {actor}\n*No changes in assets*".format(repo_name=os.environ.get("REPO_NAME", ""), repo=os.environ.get("REPO", ""), branch=os.environ.get("BRANCH", ""), sha=os.environ.get("SHA", ""), actor=os.environ.get("ACTOR", "")) + (f"\n\n*Shopify Bot Changes (non-JSON):*\n{os.environ['SHOPIFY_CHANGES']}" if os.environ.get("SHOPIFY_CHANGES", "") else ""); print(json.dumps({"channel": os.environ.get("CHANNEL_ID", ""), "text": msg, "mrkdwn": True}))')
           curl -X POST -H "Content-Type: application/json" -H "Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}" -d "$json" "https://slack.com/api/chat.postMessage"
 
@@ -194,6 +192,6 @@ jobs:
           export ACTOR="${{ github.actor }}"
           export RUN_ID="${{ github.run_id }}"
           export SHOPIFY_CHANGES="${{ steps.shopify-changes.outputs.files }}"
-          export CHANNEL_ID="${{ inputs.channel_id }}"
+          export CHANNEL_ID="${{ secrets.CHANNEL_ID }}"
           json=$(python3 -c 'import json, os; msg = "*Build Failed* :warning:\n*Project Name:* {repo_name}\n*Repository:* <https://github.com/{repo}|{repo}>\n*Branch:* {branch}\n*Commit:* <https://github.com/{repo}/commit/{sha}|{sha}>\n*Actor:* {actor}\n*Logs:* <https://github.com/{repo}/actions/runs/{run_id}|View Logs>".format(repo_name=os.environ.get("REPO_NAME", ""), repo=os.environ.get("REPO", ""), branch=os.environ.get("BRANCH", ""), sha=os.environ.get("SHA", ""), actor=os.environ.get("ACTOR", ""), run_id=os.environ.get("RUN_ID", "")) + (f"\n\n*Shopify Bot Changes (non-JSON):*\n{os.environ['SHOPIFY_CHANGES']}" if os.environ.get("SHOPIFY_CHANGES", "") else ""); print(json.dumps({"channel": os.environ.get("CHANNEL_ID", ""), "text": msg, "mrkdwn": True}))')
           curl -X POST -H "Content-Type: application/json" -H "Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}" -d "$json" "https://slack.com/api/chat.postMessage" 
