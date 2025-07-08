@@ -1,12 +1,12 @@
 name: Build Shopify Theme
 
 on:
-    workflow_call:
-        secrets:
-            SLACK_BOT_TOKEN:
-                required: true
-            CHANNEL_ID:
-                required: true
+  workflow_call:
+    secrets:
+      SLACK_BOT_TOKEN:
+        required: true
+      CHANNEL_ID:
+        required: true
 
 env:
   NODE_VERSION: '22'
@@ -21,6 +21,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Check for --skip-build flag in commit message
+        id: skip-build-flag
+        run: |
+          commit_message=$(git log -1 --pretty=%B)
+          if echo "$commit_message" | grep -q -- '--skip-build'; then
+            echo "--skip-build flag found in commit message. Skipping build."
+            echo "should-build=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
 
       - name: Check if build is needed
         id: check
@@ -65,6 +75,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Check for --skip-theme-check flag in commit message
+        id: skip-theme-check-flag
+        run: |
+          commit_message=$(git log -1 --pretty=%B)
+          if echo "$commit_message" | grep -q -- '--skip-theme-check'; then
+            echo "skip_theme_check=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip_theme_check=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -73,6 +93,29 @@ jobs:
 
       - name: Install dependencies
         run: npm ci --prefer-offline --no-audit
+
+      - name: Install Shopify CLI
+        run: npm install -g @shopify/cli @shopify/theme
+
+      - name: Run Shopify theme check
+        id: theme-check
+        if: steps.skip-theme-check-flag.outputs.skip_theme_check != 'true'
+        run: |
+          echo "Running Shopify theme check..."
+          if ! npm run theme:check > theme_check_output.txt 2>&1; then
+            echo "Theme check failed. Output:"
+            cat theme_check_output.txt
+            echo ""
+            echo "result=fail" >> $GITHUB_OUTPUT
+            echo "failed=true" >> $GITHUB_OUTPUT
+            echo "::error title=Theme Check Failed::Please fix the theme check issues before proceeding"
+            exit 1
+          else
+            echo "✅ Theme check passed successfully"
+            echo "result=pass" >> $GITHUB_OUTPUT
+            echo "failed=false" >> $GITHUB_OUTPUT
+            cat theme_check_output.txt
+          fi
 
       - name: Build project
         run: npm run build
@@ -166,7 +209,14 @@ jobs:
           export ACTOR="${{ github.actor }}"
           export SHOPIFY_CHANGES="${{ steps.shopify-changes.outputs.files }}"
           export CHANNEL_ID="${{ secrets.CHANNEL_ID }}"
-          json=$(python3 -c 'import json, os; msg = "*Build Succeeded* :tada:\n*Project Name:* {repo_name}\n*Repository:* <https://github.com/{repo}|{repo}>\n*Branch:* {branch}\n*Commit:* <https://github.com/{repo}/commit/{sha}|{sha}>\n*Actor:* {actor}\n*Assets were updated*".format(repo_name=os.environ.get("REPO_NAME", ""), repo=os.environ.get("REPO", ""), branch=os.environ.get("BRANCH", ""), sha=os.environ.get("SHA", ""), actor=os.environ.get("ACTOR", "")) + (f"\n\n*Shopify Bot Changes (non-JSON):*\n{os.environ['SHOPIFY_CHANGES']}" if os.environ.get("SHOPIFY_CHANGES", "") else ""); print(json.dumps({"channel": os.environ.get("CHANNEL_ID", ""), "text": msg, "mrkdwn": True}))')
+          THEME_CHECK_RESULT="${{ steps.theme-check.outputs.result }}"
+          if [ "$THEME_CHECK_RESULT" = "pass" ]; then
+            THEME_CHECK_STATUS="Theme check: ✅ Passed"
+          else
+            THEME_CHECK_STATUS="Theme check: ❌ Failed"
+          fi
+          export THEME_CHECK_STATUS
+          json=$(python3 -c 'import json, os; msg = "*Build Succeeded* :tada:\n*Project Name:* {repo_name}\n*Repository:* <https://github.com/{repo}|{repo}>\n*Branch:* {branch}\n*Commit:* <https://github.com/{repo}/commit/{sha}|{sha}>\n*Actor:* {actor}\n*Assets were updated*\n\n{theme_check_status}".format(repo_name=os.environ.get("REPO_NAME", ""), repo=os.environ.get("REPO", ""), branch=os.environ.get("BRANCH", ""), sha=os.environ.get("SHA", ""), actor=os.environ.get("ACTOR", ""), theme_check_status=os.environ.get("THEME_CHECK_STATUS", "")) + (f"\n\n*Shopify Bot Changes (non-JSON):*\n{os.environ['SHOPIFY_CHANGES']}" if os.environ.get("SHOPIFY_CHANGES", "") else ""); print(json.dumps({"channel": os.environ.get("CHANNEL_ID", ""), "text": msg, "mrkdwn": True}))')
           curl -X POST -H "Content-Type: application/json" -H "Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}" -d "$json" "https://slack.com/api/chat.postMessage"
 
       - name: Send Slack notification on success without changes
@@ -179,7 +229,14 @@ jobs:
           export ACTOR="${{ github.actor }}"
           export SHOPIFY_CHANGES="${{ steps.shopify-changes.outputs.files }}"
           export CHANNEL_ID="${{ secrets.CHANNEL_ID }}"
-          json=$(python3 -c 'import json, os; msg = "*Build Completed* :white_check_mark:\n*Project Name:* {repo_name}\n*Repository:* <https://github.com/{repo}|{repo}>\n*Branch:* {branch}\n*Commit:* <https://github.com/{repo}/commit/{sha}|{sha}>\n*Actor:* {actor}\n*No changes in assets*".format(repo_name=os.environ.get("REPO_NAME", ""), repo=os.environ.get("REPO", ""), branch=os.environ.get("BRANCH", ""), sha=os.environ.get("SHA", ""), actor=os.environ.get("ACTOR", "")) + (f"\n\n*Shopify Bot Changes (non-JSON):*\n{os.environ['SHOPIFY_CHANGES']}" if os.environ.get("SHOPIFY_CHANGES", "") else ""); print(json.dumps({"channel": os.environ.get("CHANNEL_ID", ""), "text": msg, "mrkdwn": True}))')
+          THEME_CHECK_RESULT="${{ steps.theme-check.outputs.result }}"
+          if [ "$THEME_CHECK_RESULT" = "pass" ]; then
+            THEME_CHECK_STATUS="Theme check: ✅ Passed"
+          else
+            THEME_CHECK_STATUS="Theme check: ❌ Failed"
+          fi
+          export THEME_CHECK_STATUS
+          json=$(python3 -c 'import json, os; msg = "*Build Completed* :white_check_mark:\n*Project Name:* {repo_name}\n*Repository:* <https://github.com/{repo}|{repo}>\n*Branch:* {branch}\n*Commit:* <https://github.com/{repo}/commit/{sha}|{sha}>\n*Actor:* {actor}\n*No changes in assets*\n\n{theme_check_status}".format(repo_name=os.environ.get("REPO_NAME", ""), repo=os.environ.get("REPO", ""), branch=os.environ.get("BRANCH", ""), sha=os.environ.get("SHA", ""), actor=os.environ.get("ACTOR", ""), theme_check_status=os.environ.get("THEME_CHECK_STATUS", "")) + (f"\n\n*Shopify Bot Changes (non-JSON):*\n{os.environ['SHOPIFY_CHANGES']}" if os.environ.get("SHOPIFY_CHANGES", "") else ""); print(json.dumps({"channel": os.environ.get("CHANNEL_ID", ""), "text": msg, "mrkdwn": True}))')
           curl -X POST -H "Content-Type: application/json" -H "Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}" -d "$json" "https://slack.com/api/chat.postMessage"
 
       - name: Send Slack notification on failure
@@ -193,5 +250,12 @@ jobs:
           export RUN_ID="${{ github.run_id }}"
           export SHOPIFY_CHANGES="${{ steps.shopify-changes.outputs.files }}"
           export CHANNEL_ID="${{ secrets.CHANNEL_ID }}"
-          json=$(python3 -c 'import json, os; msg = "*Build Failed* :warning:\n*Project Name:* {repo_name}\n*Repository:* <https://github.com/{repo}|{repo}>\n*Branch:* {branch}\n*Commit:* <https://github.com/{repo}/commit/{sha}|{sha}>\n*Actor:* {actor}\n*Logs:* <https://github.com/{repo}/actions/runs/{run_id}|View Logs>".format(repo_name=os.environ.get("REPO_NAME", ""), repo=os.environ.get("REPO", ""), branch=os.environ.get("BRANCH", ""), sha=os.environ.get("SHA", ""), actor=os.environ.get("ACTOR", ""), run_id=os.environ.get("RUN_ID", "")) + (f"\n\n*Shopify Bot Changes (non-JSON):*\n{os.environ['SHOPIFY_CHANGES']}" if os.environ.get("SHOPIFY_CHANGES", "") else ""); print(json.dumps({"channel": os.environ.get("CHANNEL_ID", ""), "text": msg, "mrkdwn": True}))')
+          THEME_CHECK_RESULT="${{ steps.theme-check.outputs.result }}"
+          if [ "$THEME_CHECK_RESULT" = "pass" ]; then
+            THEME_CHECK_STATUS="Theme check: ✅ Passed"
+          else
+            THEME_CHECK_STATUS="Theme check: ❌ Failed"
+          fi
+          export THEME_CHECK_STATUS
+          json=$(python3 -c 'import json, os; msg = "*Build Failed* :warning:\n*Project Name:* {repo_name}\n*Repository:* <https://github.com/{repo}|{repo}>\n*Branch:* {branch}\n*Commit:* <https://github.com/{repo}/commit/{sha}|{sha}>\n*Actor:* {actor}\n*Logs:* <https://github.com/{repo}/actions/runs/{run_id}|View Logs>\n\n{theme_check_status}".format(repo_name=os.environ.get("REPO_NAME", ""), repo=os.environ.get("REPO", ""), branch=os.environ.get("BRANCH", ""), sha=os.environ.get("SHA", ""), actor=os.environ.get("ACTOR", ""), run_id=os.environ.get("RUN_ID", ""), theme_check_status=os.environ.get("THEME_CHECK_STATUS", "")) + (f"\n\n*Shopify Bot Changes (non-JSON):*\n{os.environ['SHOPIFY_CHANGES']}" if os.environ.get("SHOPIFY_CHANGES", "") else ""); print(json.dumps({"channel": os.environ.get("CHANNEL_ID", ""), "text": msg, "mrkdwn": True}))')
           curl -X POST -H "Content-Type: application/json" -H "Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}" -d "$json" "https://slack.com/api/chat.postMessage" 
