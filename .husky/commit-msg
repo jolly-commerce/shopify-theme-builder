@@ -1,0 +1,30 @@
+#!/bin/sh
+
+# The commit message file is passed as $1
+COMMIT_MSG_FILE="$1"
+
+# Show commit message
+if [ -f "$COMMIT_MSG_FILE" ]; then
+  echo "📝 Commit message:"
+  echo "────────────────────────────────────────"
+  cat "$COMMIT_MSG_FILE"
+  echo "────────────────────────────────────────"
+fi
+
+# Check for --skip-theme-check flag in commit message
+if grep -q "\-\-skip-theme-check" "$COMMIT_MSG_FILE"; then
+  echo "🚫 Found --skip-theme-check flag in commit message"
+  echo "⚠️  WARNING: Theme check will be SKIPPED!"
+  echo "✅ Proceeding without theme check..."
+  exit 0
+fi
+
+# Run theme check
+echo "🔍 Running Shopify theme check..."
+if ! shopify theme check; then
+  echo "❌ Theme check failed. Commit aborted."
+  echo "⚠️ To bypass the check (not recommended), use: git commit --no-verify"
+  exit 1
+fi
+
+echo "✅ Theme check passed. Commit proceeding..." 
