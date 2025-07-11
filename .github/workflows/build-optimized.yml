@@ -60,15 +60,11 @@ jobs:
             echo "should-build=true" >> $GITHUB_OUTPUT
           fi
 
-  build:
+  theme-check:
     runs-on: ubuntu-latest
-    needs: check-files
-    if: needs.check-files.outputs.should-build == 'true'
-    
-    permissions:
-      contents: write
-      pull-requests: write
-
+    outputs:
+      result: ${{ steps.theme-check.outputs.result }}
+      skipped: ${{ steps.skip-theme-check-flag.outputs.skip_theme_check }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -86,15 +82,18 @@ jobs:
           fi
 
       - name: Setup Node.js
+        if: steps.skip-theme-check-flag.outputs.skip_theme_check != 'true'
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
       - name: Install dependencies
+        if: steps.skip-theme-check-flag.outputs.skip_theme_check != 'true'
         run: npm ci --prefer-offline --no-audit
 
       - name: Install Shopify CLI
+        if: steps.skip-theme-check-flag.outputs.skip_theme_check != 'true'
         run: npm install -g @shopify/cli @shopify/theme
 
       - name: Run Shopify theme check
@@ -102,7 +101,7 @@ jobs:
         if: steps.skip-theme-check-flag.outputs.skip_theme_check != 'true'
         run: |
           echo "Running Shopify theme check..."
-          if ! npm run theme:check > theme_check_output.txt 2>&1; then
+          if ! shopify theme check > theme_check_output.txt 2>&1; then
             echo "Theme check failed. Output:"
             cat theme_check_output.txt
             echo ""
@@ -116,6 +115,36 @@ jobs:
             echo "failed=false" >> $GITHUB_OUTPUT
             cat theme_check_output.txt
           fi
+
+      - name: Set skipped result
+        if: steps.skip-theme-check-flag.outputs.skip_theme_check == 'true'
+        run: |
+          echo "Theme check was skipped"
+          echo "result=skipped" >> $GITHUB_OUTPUT
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [check-files, theme-check]
+    if: needs.check-files.outputs.should-build == 'true' && (needs.theme-check.outputs.result == 'pass' || needs.theme-check.outputs.result == 'skipped')
+    
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
 
       - name: Build project
         run: npm run build
@@ -209,9 +238,11 @@ jobs:
           export ACTOR="${{ github.actor }}"
           export SHOPIFY_CHANGES="${{ steps.shopify-changes.outputs.files }}"
           export CHANNEL_ID="${{ secrets.CHANNEL_ID }}"
-          THEME_CHECK_RESULT="${{ steps.theme-check.outputs.result }}"
+          THEME_CHECK_RESULT="${{ needs.theme-check.outputs.result }}"
           if [ "$THEME_CHECK_RESULT" = "pass" ]; then
             THEME_CHECK_STATUS="Theme check: ✅ Passed"
+          elif [ "$THEME_CHECK_RESULT" = "skipped" ]; then
+            THEME_CHECK_STATUS="Theme check: ⏭️ Skipped"
           else
             THEME_CHECK_STATUS="Theme check: ❌ Failed"
           fi
@@ -229,9 +260,11 @@ jobs:
           export ACTOR="${{ github.actor }}"
           export SHOPIFY_CHANGES="${{ steps.shopify-changes.outputs.files }}"
           export CHANNEL_ID="${{ secrets.CHANNEL_ID }}"
-          THEME_CHECK_RESULT="${{ steps.theme-check.outputs.result }}"
+          THEME_CHECK_RESULT="${{ needs.theme-check.outputs.result }}"
           if [ "$THEME_CHECK_RESULT" = "pass" ]; then
             THEME_CHECK_STATUS="Theme check: ✅ Passed"
+          elif [ "$THEME_CHECK_RESULT" = "skipped" ]; then
+            THEME_CHECK_STATUS="Theme check: ⏭️ Skipped"
           else
             THEME_CHECK_STATUS="Theme check: ❌ Failed"
           fi
@@ -250,9 +283,11 @@ jobs:
           export RUN_ID="${{ github.run_id }}"
           export SHOPIFY_CHANGES="${{ steps.shopify-changes.outputs.files }}"
           export CHANNEL_ID="${{ secrets.CHANNEL_ID }}"
-          THEME_CHECK_RESULT="${{ steps.theme-check.outputs.result }}"
+          THEME_CHECK_RESULT="${{ needs.theme-check.outputs.result }}"
           if [ "$THEME_CHECK_RESULT" = "pass" ]; then
             THEME_CHECK_STATUS="Theme check: ✅ Passed"
+          elif [ "$THEME_CHECK_RESULT" = "skipped" ]; then
+            THEME_CHECK_STATUS="Theme check: ⏭️ Skipped"
           else
             THEME_CHECK_STATUS="Theme check: ❌ Failed"
           fi
