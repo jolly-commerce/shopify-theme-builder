@@ -145,7 +145,7 @@ ValidVisibleIf:
 VariableName:
   enabled: false
   severity: 1
-  format: snake_cas
+  format: snake_case
 ValidSchema:
   enabled: true
   severity: 0
