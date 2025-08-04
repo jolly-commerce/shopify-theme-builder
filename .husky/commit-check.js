@@ -156,10 +156,53 @@ function checkForErrors() {
             console.log('💡 Tip: Make sure no other development server is running on port 9292');
             console.log('⚠️ To bypass the check, add --skip-theme-check or --no-verify to your commit message');
             
-            devProcess.kill('SIGTERM');
+            // Force kill process immediately
+            console.log('🔄 Killing npm run dev2 process...');
+            try {
+                devProcess.kill('SIGKILL');  // Force kill
+                console.log('✅ Process killed with SIGKILL');
+            } catch (err) {
+                console.log('⚠️ Process already terminated');
+            }
             
-            // Give process time to cleanup, then exit with error
-            setTimeout(() => process.exit(1), 500);
+            // Also kill by port as backup
+            const { exec } = require('child_process');
+            if (process.platform === 'win32') {
+                console.log('🔄 Killing Windows processes on port 9292...');
+                exec('netstat -ano | findstr :9292', (err, output) => {
+                    if (output) {
+                        const lines = output.split('\n').filter(line => line.trim());
+                        lines.forEach(line => {
+                            const match = line.match(/\s+(\d+)\s*$/);
+                            if (match && match[1]) {
+                                exec(`taskkill /F /PID ${match[1]} 2>nul`, (killErr) => {
+                                    if (!killErr) {
+                                        console.log(`✅ Killed Windows process PID ${match[1]}`);
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+            } else {
+                console.log('🔄 Killing Unix/Mac processes on port 9292...');
+                exec('lsof -ti:9292 | xargs kill -9 2>/dev/null', (err) => {
+                    if (!err) {
+                        console.log('✅ Killed Unix/Mac processes on port 9292');
+                    }
+                });
+                exec('pkill -f "shopify theme dev" 2>/dev/null', (err) => {
+                    if (!err) {
+                        console.log('✅ Killed shopify theme dev processes');
+                    }
+                });
+            }
+            
+            // Give more time for cleanup, then exit with error
+            setTimeout(() => {
+                console.log('🔄 Final cleanup complete, exiting...');
+                process.exit(1);
+            }, 2000);
         }
     }
 }
