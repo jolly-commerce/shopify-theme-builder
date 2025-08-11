@@ -65,7 +65,7 @@ jobs:
     needs: check-files
     if: needs.check-files.outputs.should-build == 'true'
     outputs:
-      result: ${{ steps.theme-check.outputs.result }}
+      result: ${{ steps.theme-check.outputs.result || steps.set-skipped.outputs.result }}
       skipped: ${{ steps.skip-theme-check-flag.outputs.skip_theme_check }}
     steps:
       - name: Checkout repository
@@ -119,6 +119,7 @@ jobs:
           fi
 
       - name: Set skipped result
+        id: set-skipped
         if: steps.skip-theme-check-flag.outputs.skip_theme_check == 'true'
         run: |
           echo "Theme check was skipped"
