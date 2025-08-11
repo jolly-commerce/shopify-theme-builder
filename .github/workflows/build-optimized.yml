@@ -142,32 +142,6 @@ jobs:
           echo "Theme check was skipped"
           echo "result=skipped" >> $GITHUB_OUTPUT
 
-  debug-conditions:
-    runs-on: ubuntu-latest
-    needs: [check-files, theme-check]
-    if: always()
-    steps:
-      - name: Debug all job outputs
-        run: |
-          echo "🔍 Debug Information:"
-          echo "check-files.should-build: '${{ needs.check-files.outputs.should-build }}'"
-          echo "check-files.skip-build-used: '${{ needs.check-files.outputs.skip-build-used }}'"
-          echo "check-files.skip-theme-check-used: '${{ needs.check-files.outputs.skip-theme-check-used }}'"
-          echo "theme-check.result: '${{ needs.theme-check.outputs.result }}'"
-          echo "theme-check.skipped: '${{ needs.theme-check.outputs.skipped }}'"
-          echo ""
-          echo "Build condition evaluation:"
-          echo "should-build == 'true': ${{ needs.check-files.outputs.should-build == 'true' }}"
-          echo "theme-check pass or skip: ${{ needs.theme-check.outputs.result == 'pass' || needs.theme-check.outputs.result == 'skipped' }}"
-          echo "Final condition: ${{ needs.check-files.outputs.should-build == 'true' && (needs.theme-check.outputs.result == 'pass' || needs.theme-check.outputs.result == 'skipped') }}"
-          echo ""
-          echo "Slack notification conditions:"
-          echo "Skip build used: ${{ needs.check-files.outputs.skip-build-used == 'true' }}"
-          echo "Skip theme check used: ${{ needs.check-files.outputs.skip-theme-check-used == 'true' }}"
-          echo ""
-          echo "Job statuses:"
-          echo "check-files result: ${{ needs.check-files.result }}"
-          echo "theme-check result: ${{ needs.theme-check.result }}"
 
   build:
     runs-on: ubuntu-latest
@@ -181,12 +155,6 @@ jobs:
       pull-requests: write
 
     steps:
-      - name: Debug build conditions
-        run: |
-          echo "🔍 Debugging build conditions:"
-          echo "should-build: ${{ needs.check-files.outputs.should-build }}"
-          echo "theme-check result: ${{ needs.theme-check.outputs.result }}"
-          echo "Build condition met: ${{ needs.check-files.outputs.should-build == 'true' && (needs.theme-check.outputs.result == 'pass' || needs.theme-check.outputs.result == 'skipped') }}"
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
