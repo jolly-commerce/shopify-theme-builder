@@ -305,7 +305,7 @@ jobs:
             THEME_CHECK_STATUS=""
           fi
           export THEME_CHECK_STATUS
-          json=$(python3 -c 'import json, os; msg = "*Build Skipped* :fast_forward:\n*Project Name:* {repo_name}\n*Repository:* <https://github.com/{repo}|{repo}>\n*Branch:* {branch}\n*Commit:* <https://github.com/{repo}/commit/{sha}|{sha}>\n*Actor:* {actor}\n*Build was skipped using --skip-build flag*" + (f"\n\n{os.environ['THEME_CHECK_STATUS']}" if os.environ.get("THEME_CHECK_STATUS", "") else ""); msg = msg.format(repo_name=os.environ.get("REPO_NAME", ""), repo=os.environ.get("REPO", ""), branch=os.environ.get("BRANCH", ""), sha=os.environ.get("SHA", ""), actor=os.environ.get("ACTOR", "")); print(json.dumps({"channel": os.environ.get("CHANNEL_ID", ""), "text": msg, "mrkdwn": True}))')
+          json=$(python3 -c 'import json, os; theme_status = os.environ.get("THEME_CHECK_STATUS", ""); msg = "*Build Skipped* :fast_forward:\n*Project Name:* {repo_name}\n*Repository:* <https://github.com/{repo}|{repo}>\n*Branch:* {branch}\n*Commit:* <https://github.com/{repo}/commit/{sha}|{sha}>\n*Actor:* {actor}\n*Build was skipped using --skip-build flag*" + (f"\n\n{theme_status}" if theme_status else ""); msg = msg.format(repo_name=os.environ.get("REPO_NAME", ""), repo=os.environ.get("REPO", ""), branch=os.environ.get("BRANCH", ""), sha=os.environ.get("SHA", ""), actor=os.environ.get("ACTOR", "")); print(json.dumps({"channel": os.environ.get("CHANNEL_ID", ""), "text": msg, "mrkdwn": True}))')
           curl -X POST -H "Content-Type: application/json" -H "Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}" -d "$json" "https://slack.com/api/chat.postMessage"
 
       - name: Send Slack notification on theme check failure
