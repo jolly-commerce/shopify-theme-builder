@@ -17,11 +17,24 @@ jobs:
     outputs:
       should-build: ${{ steps.skip-build-flag.outputs.should-build || steps.check.outputs.should-build }}
       skip-build-used: ${{ steps.skip-build-flag.outputs.skip-build-used }}
+      skip-theme-check-used: ${{ steps.check-skip-flags.outputs.skip-theme-check-used }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Check for skip flags in commit message
+        id: check-skip-flags
+        run: |
+          commit_message=$(git log -1 --pretty=%B)
+          
+          # Check for --skip-theme-check flag
+          if echo "$commit_message" | grep -q -- '--skip-theme-check'; then
+            echo "skip-theme-check-used=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip-theme-check-used=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Check for --skip-build flag in commit message
         id: skip-build-flag
@@ -270,7 +283,7 @@ jobs:
     if: always()
     steps:
       - name: Send Slack notification for both skip flags
-        if: needs.check-files.outputs.skip-build-used == 'true' && needs.theme-check.outputs.skipped == 'true'
+        if: needs.check-files.outputs.skip-build-used == 'true' && needs.check-files.outputs.skip-theme-check-used == 'true'
         run: |
           export REPO_NAME="${{ github.event.repository.name }}"
           export REPO="${{ github.repository }}"
@@ -282,7 +295,7 @@ jobs:
           curl -X POST -H "Content-Type: application/json" -H "Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}" -d "$json" "https://slack.com/api/chat.postMessage"
 
       - name: Send Slack notification on theme check failure
-        if: needs.theme-check.result == 'failure' && !(needs.check-files.outputs.skip-build-used == 'true' && needs.theme-check.outputs.skipped == 'true')
+        if: needs.theme-check.result == 'failure' && !(needs.check-files.outputs.skip-build-used == 'true' && needs.check-files.outputs.skip-theme-check-used == 'true')
         run: |
           export REPO_NAME="${{ github.event.repository.name }}"
           export REPO="${{ github.repository }}"
@@ -295,7 +308,7 @@ jobs:
           curl -X POST -H "Content-Type: application/json" -H "Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}" -d "$json" "https://slack.com/api/chat.postMessage"
 
       - name: Send Slack notification on build success with changes
-        if: needs.build.result == 'success' && needs.build.outputs.assets-changed == 'true' && !(needs.check-files.outputs.skip-build-used == 'true' && needs.theme-check.outputs.skipped == 'true')
+        if: needs.build.result == 'success' && needs.build.outputs.assets-changed == 'true' && !(needs.check-files.outputs.skip-build-used == 'true' && needs.check-files.outputs.skip-theme-check-used == 'true')
         run: |
           export REPO_NAME="${{ github.event.repository.name }}"
           export REPO="${{ github.repository }}"
@@ -317,7 +330,7 @@ jobs:
           curl -X POST -H "Content-Type: application/json" -H "Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}" -d "$json" "https://slack.com/api/chat.postMessage"
 
       - name: Send Slack notification on build success without changes
-        if: needs.build.result == 'success' && needs.build.outputs.assets-changed == 'false' && github.event_name == 'push' && !(needs.check-files.outputs.skip-build-used == 'true' && needs.theme-check.outputs.skipped == 'true')
+        if: needs.build.result == 'success' && needs.build.outputs.assets-changed == 'false' && github.event_name == 'push' && !(needs.check-files.outputs.skip-build-used == 'true' && needs.check-files.outputs.skip-theme-check-used == 'true')
         run: |
           export REPO_NAME="${{ github.event.repository.name }}"
           export REPO="${{ github.repository }}"
@@ -339,7 +352,7 @@ jobs:
           curl -X POST -H "Content-Type: application/json" -H "Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}" -d "$json" "https://slack.com/api/chat.postMessage"
 
       - name: Send Slack notification on build failure
-        if: needs.build.result == 'failure' && !(needs.check-files.outputs.skip-build-used == 'true' && needs.theme-check.outputs.skipped == 'true')
+        if: needs.build.result == 'failure' && !(needs.check-files.outputs.skip-build-used == 'true' && needs.check-files.outputs.skip-theme-check-used == 'true')
         run: |
           export REPO_NAME="${{ github.event.repository.name }}"
           export REPO="${{ github.repository }}"
