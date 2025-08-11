@@ -294,12 +294,12 @@ jobs:
           # Check if theme check was also skipped
           THEME_CHECK_SKIPPED="${{ needs.check-files.outputs.skip-theme-check-used }}"
           if [ "$THEME_CHECK_SKIPPED" = "true" ]; then
-            THEME_CHECK_STATUS="Theme check: ⏭️ Skipped (--skip-theme-check)"
+            THEME_CHECK_STATUS="Theme check: ⏭️ Skipped"
           else
-            THEME_CHECK_STATUS="Theme check: ⏭️ Skipped (build skipped)"
+            THEME_CHECK_STATUS=""
           fi
           export THEME_CHECK_STATUS
-          json=$(python3 -c 'import json, os; msg = "*Build Skipped* :fast_forward:\n*Project Name:* {repo_name}\n*Repository:* <https://github.com/{repo}|{repo}>\n*Branch:* {branch}\n*Commit:* <https://github.com/{repo}/commit/{sha}|{sha}>\n*Actor:* {actor}\n*Theme build: ⏭️ Skipped (--skip-build)*\n\n{theme_check_status}".format(repo_name=os.environ.get("REPO_NAME", ""), repo=os.environ.get("REPO", ""), branch=os.environ.get("BRANCH", ""), sha=os.environ.get("SHA", ""), actor=os.environ.get("ACTOR", ""), theme_check_status=os.environ.get("THEME_CHECK_STATUS", "")); print(json.dumps({"channel": os.environ.get("CHANNEL_ID", ""), "text": msg, "mrkdwn": True}))')
+          json=$(python3 -c 'import json, os; msg = "*Build Skipped* :fast_forward:\n*Project Name:* {repo_name}\n*Repository:* <https://github.com/{repo}|{repo}>\n*Branch:* {branch}\n*Commit:* <https://github.com/{repo}/commit/{sha}|{sha}>\n*Actor:* {actor}\n*Build was skipped using --skip-build flag*" + (f"\n\n{os.environ['THEME_CHECK_STATUS']}" if os.environ.get("THEME_CHECK_STATUS", "") else ""); msg = msg.format(repo_name=os.environ.get("REPO_NAME", ""), repo=os.environ.get("REPO", ""), branch=os.environ.get("BRANCH", ""), sha=os.environ.get("SHA", ""), actor=os.environ.get("ACTOR", "")); print(json.dumps({"channel": os.environ.get("CHANNEL_ID", ""), "text": msg, "mrkdwn": True}))')
           curl -X POST -H "Content-Type: application/json" -H "Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}" -d "$json" "https://slack.com/api/chat.postMessage"
 
       - name: Send Slack notification on theme check failure
@@ -316,7 +316,7 @@ jobs:
           curl -X POST -H "Content-Type: application/json" -H "Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}" -d "$json" "https://slack.com/api/chat.postMessage"
 
       - name: Send Slack notification on build success with changes
-        if: needs.build.result == 'success' && needs.build.outputs.assets-changed == 'true'
+        if: needs.build.result == 'success' && needs.build.outputs.assets-changed == 'true' && needs.check-files.outputs.skip-build-used != 'true'
         run: |
           export REPO_NAME="${{ github.event.repository.name }}"
           export REPO="${{ github.repository }}"
@@ -338,7 +338,7 @@ jobs:
           curl -X POST -H "Content-Type: application/json" -H "Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}" -d "$json" "https://slack.com/api/chat.postMessage"
 
       - name: Send Slack notification on build success without changes
-        if: needs.build.result == 'success' && needs.build.outputs.assets-changed == 'false' && github.event_name == 'push'
+        if: needs.build.result == 'success' && needs.build.outputs.assets-changed == 'false' && github.event_name == 'push' && needs.check-files.outputs.skip-build-used != 'true'
         run: |
           export REPO_NAME="${{ github.event.repository.name }}"
           export REPO="${{ github.repository }}"
@@ -360,7 +360,7 @@ jobs:
           curl -X POST -H "Content-Type: application/json" -H "Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}" -d "$json" "https://slack.com/api/chat.postMessage"
 
       - name: Send Slack notification on build failure
-        if: needs.build.result == 'failure'
+        if: needs.build.result == 'failure' && needs.check-files.outputs.skip-build-used != 'true'
         run: |
           export REPO_NAME="${{ github.event.repository.name }}"
           export REPO="${{ github.repository }}"
