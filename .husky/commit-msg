@@ -1,0 +1,4 @@
+#!/bin/sh
+
+# Analyze commit message for skip flags
+node .husky/commit-check.js "$1" 

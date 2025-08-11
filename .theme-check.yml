@@ -1,0 +1,172 @@
+ignore:
+  - node_modules/**
+
+AssetPreload:
+  enabled: false
+  severity: 1
+BlockIdUsage:
+  enabled: false
+  severity: 1
+CaptureOnContentForBlock:
+  enabled: false
+  severity: 0
+CdnPreconnect:
+  enabled: false
+  severity: 0
+ContentForHeaderModification:
+  enabled: false
+  severity: 0
+DeprecateBgsizes:
+  enabled: false
+  severity: 1
+DeprecateLazysizes:
+  enabled: false
+  severity: 1
+DeprecatedFilter:
+  enabled: false
+  severity: 1
+DeprecatedTag:
+  enabled: false
+  severity: 1
+DuplicateContentForArguments:
+  enabled: false
+  severity: 1
+DuplicateRenderSnippetArguments:
+  enabled: false
+  severity: 1
+EmptyBlockContent:
+  enabled: false
+  severity: 1
+ImgWidthAndHeight:
+  enabled: false
+  severity: 0
+LiquidFreeSettings:
+  enabled: false
+  severity: 1
+LiquidHTMLSyntaxError:
+  enabled: false
+  severity: 0
+MissingAsset:
+  enabled: false
+  severity: 0
+MissingContentForArguments:
+  enabled: false
+  severity: 1
+MissingRenderSnippetArguments:
+  enabled: false
+  severity: 1
+MissingTemplate:
+  enabled: false
+  severity: 0
+  ignoreMissing: []
+PaginationSize:
+  enabled: false
+  severity: 1
+  minSize: 1
+  maxSize: 50
+ParserBlockingScript:
+  enabled: false
+  severity: 0
+RemoteAsset:
+  enabled: false
+  severity: 1
+RequiredLayoutThemeObject:
+  enabled: false
+  severity: 0
+ReservedDocParamNames:
+  enabled: false
+  severity: 0
+SchemaPresetsBlockOrder:
+  enabled: false
+  severity: 1
+SchemaPresetsStaticBlocks:
+  enabled: false
+  severity: 0
+TranslationKeyExists:
+  enabled: false
+  severity: 0
+UnclosedHTMLElement:
+  enabled: false
+  severity: 1
+UndefinedObject:
+  enabled: false
+  severity: 1
+UniqueDocParamNames:
+  enabled: false
+  severity: 0
+UniqueSettingId:
+  enabled: false
+  severity: 0
+UniqueStaticBlockId:
+  enabled: false
+  severity: 0
+UnknownFilter:
+  enabled: false
+  severity: 0
+UnrecognizedContentForArguments:
+  enabled: false
+  severity: 1
+UnrecognizedRenderSnippetArguments:
+  enabled: false
+  severity: 1
+UnsupportedDocTag:
+  enabled: false
+  severity: 0
+UnusedAssign:
+  enabled: false
+  severity: 1
+UnusedDocParam:
+  enabled: false
+  severity: 1
+ValidBlockTarget:
+  enabled: false
+  severity: 0
+ValidContentForArgumentTypes:
+  enabled: false
+  severity: 1
+ValidContentForArguments:
+  enabled: false
+  severity: 0
+ValidDocParamNames:
+  enabled: false
+  severity: 1
+ValidDocParamTypes:
+  enabled: false
+  severity: 0
+ValidLocalBlocks:
+  enabled: false
+  severity: 0
+ValidRenderSnippetArgumentTypes:
+  enabled: false
+  severity: 1
+ValidVisibleIf:
+  enabled: false
+  severity: 0
+VariableName:
+  enabled: false
+  severity: 1
+  format: snake_case
+ValidSchema:
+  enabled: true
+  severity: 0
+ValidJSON:
+  enabled: true
+  severity: 0
+ValidSettingsKey:
+  enabled: true
+  severity: 0
+ValidStaticBlockType:
+  enabled: true
+  severity: 0
+JSONMissingBlock:
+  enabled: true
+  severity: 0
+JSONSyntaxError:
+  enabled: true
+  severity: 0
+MatchingTranslations:
+  enabled: true
+  severity: 0
+ValidHTMLTranslation:
+  enabled: true
+  severity: 0
